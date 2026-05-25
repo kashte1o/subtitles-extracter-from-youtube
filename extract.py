@@ -25,29 +25,27 @@ def download_subs(url: str, lang: str, output_dir: Path) -> Path | None:
             "--write-auto-subs",
             "--sub-langs", f"{lang}.*",
             "--sub-format", "vtt",
-            "--convert-subs", "srt",
             "-o", str(output_dir / "subs.%(ext)s"),
             url,
         ],
         capture_output=True, text=True
     )
-    if result.stdout:
-        for line in result.stdout.splitlines():
-            if any(k in line for k in ("[info]", "[youtube]", "Destination", "subtitle", "WARNING", "ERROR")):
-                print(f"    yt-dlp: {line.strip()}")
-    if result.returncode != 0 and result.stderr:
-        print(f"    yt-dlp error: {result.stderr.strip()[:300]}")
-    all_files = list(output_dir.glob("subs*"))
-    print(f"    [debug] files in output_dir after yt-dlp: {[f.name for f in all_files]}")
-    srt_files = [f for f in all_files if f.suffix == ".srt"]
-    return srt_files[0] if srt_files else None
+    sub_files = [f for f in output_dir.glob("subs*") if f.suffix in (".vtt", ".srt")]
+    return sub_files[0] if sub_files else None
 
 
 def clean_srt(srt_path: Path) -> str:
     text = srt_path.read_text(encoding="utf-8", errors="ignore")
+    # strip WEBVTT header
+    text = re.sub(r"^WEBVTT.*?\n", "", text, flags=re.MULTILINE)
+    # strip sequence numbers
     text = re.sub(r"^\d+\s*$", "", text, flags=re.MULTILINE)
+    # strip timestamp lines (SRT and VTT formats)
     text = re.sub(r"^\d\d:\d\d:\d\d[,.]\d+\s-->\s.*$", "", text, flags=re.MULTILINE)
+    text = re.sub(r"^\d\d:\d\d[,.]\d+\s-->\s.*$", "", text, flags=re.MULTILINE)
+    # strip tags and cue settings
     text = re.sub(r"<[^>]+>", "", text)
+    text = re.sub(r"\{[^}]+\}", "", text)
     text = re.sub(r"\n+", " ", text)
     text = re.sub(r"\s+", " ", text).strip()
     return text
