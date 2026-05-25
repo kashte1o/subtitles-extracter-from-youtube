@@ -37,7 +37,9 @@ def download_subs(url: str, lang: str, output_dir: Path) -> Path | None:
                 print(f"    yt-dlp: {line.strip()}")
     if result.returncode != 0 and result.stderr:
         print(f"    yt-dlp error: {result.stderr.strip()[:300]}")
-    srt_files = list(output_dir.glob("subs*.srt"))
+    all_files = list(output_dir.glob("subs*"))
+    print(f"    [debug] files in output_dir after yt-dlp: {[f.name for f in all_files]}")
+    srt_files = [f for f in all_files if f.suffix == ".srt"]
     return srt_files[0] if srt_files else None
 
 
