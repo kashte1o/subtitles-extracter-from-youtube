@@ -97,9 +97,10 @@ def main():
             transcript = clean_srt(srt_path)
             srt_path.unlink()
         else:
-            print("[-] No subtitles found, falling back to Whisper...")
+            print("[-] No subtitles found, skipping video.")
+            sys.exit(0)
 
-    if transcript is None:
+    if args.force_audio:
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             print("[!] OPENAI_API_KEY not set. Cannot transcribe audio.")
