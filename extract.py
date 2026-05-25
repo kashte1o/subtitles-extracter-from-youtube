@@ -48,7 +48,33 @@ def clean_srt(srt_path: Path) -> str:
     text = re.sub(r"\{[^}]+\}", "", text)
     text = re.sub(r"\n+", " ", text)
     text = re.sub(r"\s+", " ", text).strip()
-    return text
+
+    # remove duplicate sentences/phrases that repeat consecutively
+    # split into sentences by spaces, deduplicate overlapping chunks
+    words = text.split()
+    result = []
+    i = 0
+    while i < len(words):
+        # try to find a repeating window of 3-15 words starting at position i
+        found_repeat = False
+        for w in range(15, 2, -1):
+            chunk = words[i:i + w]
+            if len(chunk) < w:
+                break
+            next_chunk = words[i + w:i + w * 2]
+            if chunk == next_chunk:
+                result.extend(chunk)
+                i += w * 2
+                # skip further immediate repeats
+                while words[i:i + w] == chunk:
+                    i += w
+                found_repeat = True
+                break
+        if not found_repeat:
+            result.append(words[i])
+            i += 1
+
+    return " ".join(result)
 
 
 def download_audio(url: str, output_dir: Path) -> Path | None:
