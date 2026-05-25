@@ -17,10 +17,11 @@ def get_video_title(url: str) -> str:
 
 
 def download_subs(url: str, lang: str, output_dir: Path) -> Path | None:
-    subprocess.run(
+    result = subprocess.run(
         [
             "yt-dlp",
             "--skip-download",
+            "--write-subs",
             "--write-auto-subs",
             "--sub-langs", f"{lang}.*",
             "--sub-format", "vtt",
@@ -30,6 +31,12 @@ def download_subs(url: str, lang: str, output_dir: Path) -> Path | None:
         ],
         capture_output=True, text=True
     )
+    if result.stdout:
+        for line in result.stdout.splitlines():
+            if any(k in line for k in ("[info]", "[youtube]", "Destination", "subtitle", "WARNING", "ERROR")):
+                print(f"    yt-dlp: {line.strip()}")
+    if result.returncode != 0 and result.stderr:
+        print(f"    yt-dlp error: {result.stderr.strip()[:300]}")
     srt_files = list(output_dir.glob("subs*.srt"))
     return srt_files[0] if srt_files else None
 
